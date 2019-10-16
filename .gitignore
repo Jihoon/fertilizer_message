@@ -1,0 +1,9 @@
+
+*.pyc
+ref/*.*
+.Rproj.user/
+
+*.bak
+*.pper
+*.Rproj
+*.xlsx
