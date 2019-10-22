@@ -6,6 +6,13 @@ Created on Tue Aug  6 11:15:57 2019
 """
 import pandas as pd
 import numpy as np
+import time
+
+import ixmp as ix
+import message_ix
+
+# Assume SetupNitrogenBase is run beforehand.
+from SetupNitrogenBase import newtechnames, par_bgnd
 
 #%% Load the base nitrogen scenario
 
@@ -15,6 +22,9 @@ basescenarioName = "Baseline" #
 newscenarioName = "CCS_Base" # '2degreeC' # 
 
 comment = "MESSAGE global test for new representation of nitrogen cycle with CCS"
+
+# launch the IX modeling platform using the local default database                                                                                                                       
+mp = ix.Platform(dbprops=r'H:\MyDocuments\MESSAGE\message_ix\config\default.properties')
 
 Sc_nitro = message_ix.Scenario(mp, modelName, basescenarioName)
 

@@ -5,7 +5,8 @@ Created on Tue Aug  6 11:17:06 2019
 @author: min
 """
 
-
+import time
+import pandas as pd
         
         
 #%% Add climate policies
@@ -24,7 +25,7 @@ newscenarioName = "2degreeC" # '2degreeC' #
 
 comment = "MESSAGE_Global test for new representation of nitrogen cycle with climate policy"
 
-Sc_nitro_ccs = message_ix.Scenario(mp, modelName, basescenarioName, 3)
+Sc_nitro_ccs = message_ix.Scenario(mp, modelName, basescenarioName)
 
 
 #%% Clone
@@ -39,7 +40,7 @@ Sc_nitro_2C.remove_solution()
 Sc_nitro_2C.check_out()
 
 #%% Put global emissions bound 
-bound = 15000# 10760
+bound = 7000 #15000 #
 bound_emissions_2C = {
     'node': 'World',
     'type_emission': 'TCE',
@@ -127,7 +128,16 @@ Sc_nitro_2C.solve(model='MESSAGE', case=Sc_nitro_2C.model+"_"+
 print(".solve: %.6s seconds taken." % (time.time() - start_time))
 
 
-reporting(mp, Sc_nitro_2C, 'False', modelName, newscenarioName, 
-                      merge_hist=True, xlsx=r'H:\MyDocuments\MESSAGE\message_data\tools\post_processing\MESSAGEix_WorkDB_Template.xlsx',
-                      out_dir=r'H:\MyDocuments\MESSAGE\message_ix\message_ix\model\output',)
+#%%
+rep = Reporter.from_scenario(Sc_nitro_2C)
 
+# Set up filters for N tecs
+rep.set_filters(t= newtechnames_ccs + newtechnames + ['NFert_imp', 'NFert_exp', 'NFert_trd'])
+
+# NF demand summary
+NF = rep.add_product('useNF', 'land_input', 'LAND')
+
+print(rep.describe(rep.full_key('useNF')))
+rep.get('useNF:n-y')
+rep.write('useNF:n-y', 'nf_demand_7000_notrade.xlsx')
+rep.write('useNF:y', 'nf_demand_tota_7000_notrade.xlsx')

@@ -19,15 +19,16 @@ import os
 #import numpy as np
 import time, re
 
-os.chdir(r'H:\MyDocuments\MESSAGE\message_data')
-from tools.post_processing.iamc_report_hackathon import report as reporting
-
-from message_ix.reporting import Reporter
+#os.chdir(r'H:\MyDocuments\MESSAGE\message_data')
+##from tools.post_processing.iamc_report_hackathon import report as reporting
+#
+#from message_ix.reporting import Reporter
 
 os.chdir(r'H:\MyDocuments\MESSAGE\N-fertilizer\code.Global')
 
 #import LoadParams # Load techno-economic param values from the excel file
-exec(open(r'LoadParams.py').read())
+#exec(open(r'LoadParams.py').read())
+import LoadParams
 
 #%% Set up scope
 
@@ -108,7 +109,7 @@ for t in newtechnames[0:5]:
     Sc_nitro.add_par("output", df) 
     df['commodity'] = 'd_heat'
     df['level'] = 'secondary'      
-    df['value'] = output_heat[newtechnames.index(t)] 
+    df['value'] = LoadParams.output_heat[newtechnames.index(t)] 
     Sc_nitro.add_par("output", df) 
       
     # Fuel input
@@ -121,19 +122,19 @@ for t in newtechnames[0:5]:
     # Non-elec fuels
     if t[:-4]!='electr': # electr has only electr input (no other fuel)
         df['commodity'] = t[:-4] # removing '_NH3'    
-        df['value'] = input_fuel[newtechnames.index(t)] 
+        df['value'] = LoadParams.input_fuel[newtechnames.index(t)] 
         Sc_nitro.add_par("input", df)         
     # Electricity input (for any fuels)
     df['commodity'] = 'electr' # All have electricity input    
-    df['value'] = input_elec[newtechnames.index(t)] 
+    df['value'] = LoadParams.input_elec[newtechnames.index(t)] 
     df['level'] = 'secondary'
     Sc_nitro.add_par("input", df)        
     
     # Water input # Not exist in Russia model - CHECK for global model
-#    df['level'] = 'water_supply' # final for feedstock input     
-#    df['commodity'] = 'freshwater_supply' # All have electricity input    
-#    df['value'] = input_water[newtechnames.index(t)] 
-#    Sc_nitro.add_par("input", df)            
+    df['level'] = 'water_supply' # final for feedstock input     
+    df['commodity'] = 'freshwater_supply' # All have electricity input    
+    df['value'] = LoadParams.input_water[newtechnames.index(t)] 
+    Sc_nitro.add_par("input", df)            
     
     df = Sc_nitro.par("technical_lifetime", {"technology":["solar_i"]}) # lifetime = 15 year
     df['technology'] = t
@@ -142,17 +143,17 @@ for t in newtechnames[0:5]:
     # Costs
     df = Sc_nitro.par("inv_cost", {"technology":["solar_i"]})
     df['technology'] = t
-    df['value'] = inv_cost[newtechnames.index(t)] 
+    df['value'] = LoadParams.inv_cost[newtechnames.index(t)] 
     Sc_nitro.add_par("inv_cost", df) 
     
     df = Sc_nitro.par("fix_cost", {"technology":["solar_i"]})
     df['technology'] = t
-    df['value'] = fix_cost[newtechnames.index(t)] 
+    df['value'] = LoadParams.fix_cost[newtechnames.index(t)] 
     Sc_nitro.add_par("fix_cost", df)  
     
     df = Sc_nitro.par("var_cost", {"technology":["solar_i"]})
     df['technology'] = t
-    df['value'] = var_cost[newtechnames.index(t)] 
+    df['value'] = LoadParams.var_cost[newtechnames.index(t)] 
     Sc_nitro.add_par("var_cost", df)   
     
     # Emission factor
@@ -160,7 +161,7 @@ for t in newtechnames[0:5]:
     df = df.drop(columns=['node_dest', 'commodity', 'level', 'time'])
     df = df.rename(columns={'time_dest':'emission'})
     df['emission'] = 'CO2_transformation' # Check out what it is
-    df['value'] = emissions[newtechnames.index(t)] 
+    df['value'] = LoadParams.emissions[newtechnames.index(t)] 
     df['technology'] = t
     df['unit'] = '???'
     Sc_nitro.add_par("emission_factor", df)   
@@ -170,7 +171,7 @@ for t in newtechnames[0:5]:
     
     # Emission factors in relation (Currently these are more correct values than emission_factor)
     df = Sc_nitro.par("relation_activity",  {"relation":["CO2_cc"], "technology":["h2_smr"]})
-    df['value'] = emissions[newtechnames.index(t)] 
+    df['value'] = LoadParams.emissions[newtechnames.index(t)] 
     df['technology'] = t
     df['unit'] = '???'
     Sc_nitro.add_par("relation_activity", df)   
@@ -180,12 +181,11 @@ for t in newtechnames[0:5]:
     # Capacity factor
     df = Sc_nitro.par("capacity_factor", {"technology":["solar_i"]})
     df['technology'] = t
-    df['value'] = capacity_factor[newtechnames.index(t)] 
+    df['value'] = LoadParams.capacity_factor[newtechnames.index(t)] 
     Sc_nitro.add_par("capacity_factor", df)   
 
 
-
-### N-fertilizer from NH3
+### N-fertilizer from NH3 (generic)
 comm = newcommnames[-1]
 tech = newtechnames[-1]
 
@@ -202,7 +202,7 @@ df = df.rename(columns={'time_dest':'time_origin', 'node_dest':'node_origin'})
 df['technology'] = tech
 df['level'] = newlevelnames[0] 
 df['commodity'] = newcommnames[0] #'NH3'     
-df['value'] = input_fuel[newtechnames.index(tech)] # NH3/N = 17/14
+df['value'] = LoadParams.input_fuel[newtechnames.index(tech)] # NH3/N = 17/14
 Sc_nitro.add_par("input", df)  
     
 df = Sc_nitro.par("technical_lifetime", {"technology":["solar_i"]}) # lifetime = 15 year
@@ -211,18 +211,18 @@ Sc_nitro.add_par("technical_lifetime", df)
 
 # Costs
 df = Sc_nitro.par("inv_cost", {"technology":["solar_i"]})
-df['value'] = inv_cost[newtechnames.index(tech)]
+df['value'] = LoadParams.inv_cost[newtechnames.index(tech)]
 df['technology'] = tech
 Sc_nitro.add_par("inv_cost", df) 
 
 df = Sc_nitro.par("fix_cost", {"technology":["solar_i"]})
 df['technology'] = tech
-df['value'] = fix_cost[newtechnames.index(tech)]
+df['value'] = LoadParams.fix_cost[newtechnames.index(tech)]
 Sc_nitro.add_par("fix_cost", df)  
 
 df = Sc_nitro.par("var_cost", {"technology":["solar_i"]})
 df['technology'] = tech
-df['value'] = var_cost[newtechnames.index(tech)]
+df['value'] = LoadParams.var_cost[newtechnames.index(tech)]
 Sc_nitro.add_par("var_cost", df)   
 
 
@@ -245,41 +245,26 @@ df = Sc_nitro.par('growth_activity_lo', {"technology":["gas_extr_mpen"]})
 for q in newtechnames:
     df['technology'] = q
     Sc_nitro.add_par('growth_activity_lo', df)      
-# Initial new capacity needed (I guess)
-#df = Sc_nitro.par("initial_activity_up", {"technology":["gas_extr_4"]}) 
-#df = df.rename(columns={'year_act':'year_vtg'})
-#df['value'] = 0.1 # PLACEHOLDER
-#df['technology'] = 'electr_NH3'
-#df = df.drop(columns=['time'])
-#Sc_nitro.add_par("initial_new_capacity_up", df)   
-#    
-#df = Sc_nitro.par("growth_new_capacity_up", {"technology":["coal_ppl"]}) 
-#df['value'] = 0.05 # PLACEHOLDER
-#df['technology'] = 'electr_NH3'
-#Sc_nitro.add_par("growth_new_capacity_up", df)   
 
 #%% Process the regional historical activities
-        
-feedshare_GLO.insert(1, "bio_pct", 0)
-feedshare_GLO.insert(2, "elec_pct", 0)
+   
+fs_GLO = LoadParams.feedshare_GLO     
+fs_GLO.insert(1, "bio_pct", 0)
+fs_GLO.insert(2, "elec_pct", 0)
 # 17/14 NH3:N ratio, to get NH3 activity based on N demand => No NH3 loss assumed during production
-feedshare_GLO.iloc[:,1:6] = input_fuel[5] * feedshare_GLO.iloc[:,1:6] 
-feedshare_GLO.insert(6, "NH3_to_N", 1)
+fs_GLO.iloc[:,1:6] = LoadParams.input_fuel[5] * fs_GLO.iloc[:,1:6] 
+fs_GLO.insert(6, "NH3_to_N", 1)
 
 # Share of feedstocks for NH3 prodution (based on 2010 => Assumed fixed for any past years)
-feedshare = feedshare_GLO.sort_values(['Region']).set_index('Region').drop('R11_GLB')
+feedshare = fs_GLO.sort_values(['Region']).set_index('Region').drop('R11_GLB')
         
 # Get historical N demand from SSP2-nopolicy (may need to vary for diff scenarios)
-N_demand = N_demand_GLO[N_demand_GLO.Scenario=="NoPolicy"].reset_index().loc[0:10,2010] # 2010 tot N demand
+N_demand_raw = LoadParams.N_demand_GLO
+N_demand = N_demand_raw[N_demand_raw.Scenario=="NoPolicy"].reset_index().loc[0:10,2010] # 2010 tot N demand
 N_demand = N_demand.repeat(len(newtechnames))
 
 act2010 = (feedshare.values.flatten() * N_demand).reset_index(drop=True)
 
-#N_demand = (N_demand_GLO[N_demand_GLO.Scenario=="NoPolicy"].reset_index().loc[0:10,2020] 
-#            + N_demand_GLO[N_demand_GLO.Scenario=="NoPolicy"].reset_index().loc[0:10,2010])/2
-#N_demand = N_demand.repeat(len(newtechnames))
-#
-#act2015 = (feedshare.values.flatten() * N_demand).reset_index(drop=True)
 
 
 #%% Historical activities/capacities - Region specific
@@ -301,54 +286,42 @@ life = Sc_nitro.par("technical_lifetime", {"technology":["gas_NH3"]}).value[0]
 
 df = Sc_nitro.par("historical_new_capacity").iloc[0:len(newtechnames)*(len(REGIONS)-1),] # whatever
 df['technology'] = newtechnames * (len(REGIONS)-1)
-df['value'] = [x * 1/life/capacity_factor[0] for x in act2010] # Assume 1/lifetime (=15yr) is built each year
+df['value'] = [x * 1/life/LoadParams.capacity_factor[0] for x in act2010] # Assume 1/lifetime (=15yr) is built each year
 df['year_vtg'] = 2010
 df['unit'] = 'Tg N/yr'
 Sc_nitro.add_par("historical_new_capacity", df)
-#df['value'] = [x * 1/15/capacity_factor[0] for x in act2015] # Assume 1/lifetime is built each year
-#df['year_vtg'] = 2015
-#Sc_nitro.add_par("historical_new_capacity", df)
 
 
 #%% Secure feedstock balance (foil_fs, gas_fs, coal_fs)  loil_fs?
 # Select only the model years
-years = set(map(int, list(Sc_nitro.set('year')))) & set(N_demand_GLO) # get intersection 
+years = set(map(int, list(Sc_nitro.set('year')))) & set(N_demand_raw) # get intersection 
 #scenarios = N_demand_FSU.Scenario # Scenario names (SSP2)
-N_demand = N_demand_GLO.loc[N_demand_GLO.Scenario=="NoPolicy",].drop(35)
+N_demand = N_demand_raw.loc[N_demand_raw.Scenario=="NoPolicy",].drop(35)
 N_demand = N_demand[N_demand.columns.intersection(years)]
 N_demand[2110] = N_demand[2100] # Make up 2110 data (for now) in Mt/year
-
-# Assume a fixed share of FSU is for RUS
-#N_demand_RUS = N_demand_GLO.iloc[2,]/N_demand_GLO.iloc[2,][2010]*hist_activity2010[5] # Baseline: 66% of FSU production is Russia (\\hdrive\home$\u045\min\MyDocuments\MESSAGE\N-fertilizer\FAOSTAT)
-
-# Turn it into a df and join
-#N_demand = N_demand.T
-#N_demand.index.name = 'year'
-#N_demand_GLO = N_demand_GLO.reset_index().rename(index=str, columns={2: "value"})
-
-# Now with the 5-year interval model. Need to interpolate for the intermediate years.
-
-#from scipy.interpolate import interp1d
-##N_demand_10yr = N_demand_RUS[~N_demand_RUS.value.isna()]
-#f=interp1d(N_demand_GLO.year, N_demand_10yr.value)
-#N_demand_RUS.value = f(N_demand_RUS.year)
-#N_demand_RUS.loc[N_demand_RUS.year==2015,['value']] = hist_activity2015[5]
 
 # Adjust i_feed demand (10% of total feedstock for Ammonia assumed) - REFINE
 demand_fs_org = Sc_nitro.par('demand', {"commodity":["i_feed"]})
 demand_fs_org['value'] = demand_fs_org['value'] * 0.9
 Sc_nitro.add_par("demand", demand_fs_org)
 
-df = Sc_nitro.par("demand", {"commodity":["i_feed"]})
-df = df.loc[df.year>=2000,].reset_index(drop=True).sort_values(['node', 'year'])
-df['commodity'] = newcommnames[-1]
-df['level'] = newlevelnames[-1]
-df['unit'] = 'Tg N/yr'
-#df = df.drop("value", axis=1)
-#df = df.join(N_demand_RUS.set_index('year'), on='year')
-df.value = N_demand.values.flatten()
+# Create a new demand category for N-fertilizer (given exogenous)
+#df = Sc_nitro.par("demand", {"commodity":["i_feed"]})
+#df = df.loc[df.year>=2000,].reset_index(drop=True).sort_values(['node', 'year'])
+#df['commodity'] = newcommnames[-1]
+#df['level'] = newlevelnames[-1]
+#df['unit'] = 'Tg N/yr'
+#df.value = N_demand.values.flatten()
+#
+#Sc_nitro.add_par("demand", df)   
 
-Sc_nitro.add_par("demand", df)   
+# Now link the GLOBIOM input (now endogenous)
+df = Sc_nitro.par("land_output", {"commodity":newcommnames[-1]})
+df['level'] = newlevelnames[-1]
+Sc_nitro.add_par("land_input", df)   
+
+
+
 
 
 #%% Solve the model.
