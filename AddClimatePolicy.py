@@ -20,18 +20,18 @@ mp = ix.Platform(dbprops=r'H:\MyDocuments\MESSAGE\message_ix\config\default.prop
 
 # new model name in ix platform
 modelName = "JM_GLB_NITRO"
-basescenarioName = "CCS_Base" #
-newscenarioName = "2degreeC" # '2degreeC' # 
+basescenarioName = "Baseline" # CCS now merged to the Baseline
+newscenarioName = "EmBound" # '2degreeC' # 
 
 comment = "MESSAGE_Global test for new representation of nitrogen cycle with climate policy"
 
-Sc_nitro_ccs = message_ix.Scenario(mp, modelName, basescenarioName)
+Sc_nitro = message_ix.Scenario(mp, modelName, basescenarioName)
 
 
 #%% Clone
-Sc_nitro_2C = Sc_nitro_ccs.clone(modelName, newscenarioName, comment)
+Sc_nitro_2C = Sc_nitro.clone(modelName, newscenarioName, comment)
 
-lasthistyear = 2020 # Last historical year
+lasthistyear = 2020 # New last historical year
 df_ACT = Sc_nitro_2C.var('ACT', {'year_act':lasthistyear}).groupby(['node_loc', 'technology', 'year_act']).sum().reset_index()
 df_CAP_NEW = Sc_nitro_2C.var('CAP_NEW', {'year_vtg':lasthistyear}).groupby(['node_loc', 'technology', 'year_vtg']).sum().reset_index()
 df_EXT = Sc_nitro_2C.var('EXT', {'year':lasthistyear}).groupby(['node', 'commodity', 'grade', 'year']).sum().reset_index()
@@ -40,7 +40,7 @@ Sc_nitro_2C.remove_solution()
 Sc_nitro_2C.check_out()
 
 #%% Put global emissions bound 
-bound = 7000 #15000 #
+bound = 5000 #15000 #
 bound_emissions_2C = {
     'node': 'World',
     'type_emission': 'TCE',
@@ -139,5 +139,5 @@ NF = rep.add_product('useNF', 'land_input', 'LAND')
 
 print(rep.describe(rep.full_key('useNF')))
 rep.get('useNF:n-y')
-rep.write('useNF:n-y', 'nf_demand_7000_notrade.xlsx')
-rep.write('useNF:y', 'nf_demand_tota_7000_notrade.xlsx')
+rep.write('useNF:n-y', 'nf_demand_'+str(bound)+'_notrade.xlsx')
+rep.write('useNF:y', 'nf_demand_total_'+str(bound)+'_notrade.xlsx')

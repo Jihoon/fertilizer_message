@@ -64,8 +64,6 @@ df['technology'] = df['technology'] + '_ccs'  # Rename the technologies
 Sc_nitro_ccs.add_par("output", df)   
 
 
-
-
 # Emission factors (emission_factor)
 
 df = Sc_nitro_ccs.par("emission_factor")
