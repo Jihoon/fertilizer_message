@@ -111,16 +111,15 @@ for cases in ['nf_demand', 'nf_emissions', 'nf_input', 'price_commodity']:
 from pyam.plotting import OUTSIDE_LEGEND
 
 def plot_NF_result(case='nf_demand', model=model_name, scen='baseline'):
-"""
-    - Generate PNG plots for each case of ['nf_demand', 'nf_emissions', 'nf_input', 'price_commodity']
-    - Data read from the xlsx files created above    
-"""
-        
+    """
+        - Generate PNG plots for each case of ['nf_demand', 'nf_emissions', 'nf_input', 'price_commodity']
+        - Data read from the xlsx files created above    
+    """        
     if case in ['nf_demand', 'all']:
         data = pyam.IamDataFrame(data='nf_demand'+'_'+model+'_'+scen+'.xlsx', encoding='utf-8')
         fig, ax = plt.subplots(figsize=(12, 12))    
         data.filter(level=0).stack_plot(ax=ax, stack='region')
-        plt.savefig('nf_demand'+'_'+model+'_'+scen+'.png')
+        plt.savefig('./plots/nf_demand'+'_'+model+'_'+scen+'.png')
 
     # Pyam currently doesn't allow stack_plot for the next two cases for unknown reasons.
     # (https://github.com/IAMconsortium/pyam/issues/296)    
@@ -132,7 +131,7 @@ def plot_NF_result(case='nf_demand', model=model_name, scen='baseline'):
         
         fig, ax = plt.subplots(figsize=(12, 12))    
         data.filter(region="World").line_plot(ax=ax, legend=OUTSIDE_LEGEND['right'])
-        plt.savefig('nf_input'+'_'+model+'_'+scen+'.png')
+        plt.savefig('./plots/nf_input'+'_'+model+'_'+scen+'.png')
 
     if case in ['nf_emissions', 'all']:    
         data = pyam.IamDataFrame(data='nf_emissions'+'_'+model+'_'+scen+'.xlsx', encoding='utf-8')
@@ -141,19 +140,19 @@ def plot_NF_result(case='nf_demand', model=model_name, scen='baseline'):
         
         fig, ax = plt.subplots(figsize=(12, 12))    
         data.filter(region="World").line_plot(ax=ax, legend=OUTSIDE_LEGEND['right'])
-        plt.savefig('nf_emissions'+'_'+model+'_'+scen+'.png')
+        plt.savefig('./plots/nf_emissions'+'_'+model+'_'+scen+'.png')
         
     if case in ['price_commodity', 'all']:
         # N fertilizer
         data = pyam.IamDataFrame(data='price_commodity'+'_'+model+'_'+scen+'.xlsx', encoding='utf-8')
         fig, ax = plt.subplots(figsize=(12, 12))    
         data.filter(variable='Price|Fertilizer Use|*', region='R11_AFR').line_plot(ax=ax, legend=False) # Identical across regoins through trade
-        plt.savefig('price_NF'+'_'+model+'_'+scen+'.png')
+        plt.savefig('./plots/price_NF'+'_'+model+'_'+scen+'.png')
         
         #NH3
         fig, ax = plt.subplots(figsize=(12, 12))    
         data.filter(variable='Price|NH3').line_plot(ax=ax, color='region', legend=OUTSIDE_LEGEND['right'])
-        plt.savefig('price_NH3'+'_'+model+'_'+scen+'.png')
+        plt.savefig('./plots/price_NH3'+'_'+model+'_'+scen+'.png')
     
 """  
 scen_names = ["baseline",
