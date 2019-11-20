@@ -35,8 +35,7 @@ importlib.reload(LoadParams)
 #%% Set up scope
 
 scen_names = {"baseline" : "NoPolicy",
-              "NPiREF-con-prim-dir-ncr" : "NPi",
-#             "NPi2020_1600-con-prim-dir-ncr" : "NPi2020_1600",
+              "NPi2020-con-prim-dir-ncr" : "NPi",
               "NPi2020_1000-con-prim-dir-ncr" : "NPi2020_1000",
               "NPi2020_400-con-prim-dir-ncr" : "NPi2020_400"}
 

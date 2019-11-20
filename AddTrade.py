@@ -11,9 +11,6 @@ import time
 import ixmp as ix
 import message_ix
 
-from pathlib import Path
-from message_ix.reporting import Reporter
-
 import importlib
 #import LoadParams
 importlib.reload(LoadParams)
@@ -21,18 +18,12 @@ importlib.reload(LoadParams)
 #%% Base model load
 
 # launch the IX modeling platform using the local default database                                                                                                                       
-mp = ix.Platform(dbprops=r'H:\MyDocuments\MESSAGE\message_ix\config\default.properties')
-
-#modelName = "CD_Links_SSP2" # "BZ_MESSAGE_RU" #
-#scenarioName = 'baseline' # "INDCi_1000-con-prim-dir-ncr" # 
-#Sc_ref = message_ix.Scenario(mp, modelName, scenarioName)
-#demand_fs_org = Sc_ref.par('demand', {"commodity":["i_feed"]})
-
+mp = ix.Platform(dbprops=r'H:\MyDocuments\MESSAGE\message_ix\config\default.org.properties')
 
 # new model name in ix platform
 modelName = "JM_GLB_NITRO"
-basescenarioName =  "Baseline" # 'EmBound' #
-newscenarioName = "TrdGlobal" # 
+basescenarioName =  "NoPolicy" 
+newscenarioName = "NoPolicy_Trd" 
 
 comment = "MESSAGE global test for new representation of nitrogen cycle with global trade"
 
@@ -40,9 +31,8 @@ Sc_nitro = message_ix.Scenario(mp, modelName, basescenarioName)
 
 #%% Clone the model
 
-Sc_nitro_trd = Sc_nitro_trd.clone(modelName, newscenarioName, comment)
-#Sc_nitro_trd = message_ix.Scenario(mp, modelName, newscenarioName, 2)
-#Sc_nitro_trd.par('bound_emission')
+Sc_nitro_trd = Sc_nitro.clone(modelName, newscenarioName, comment)
+
 Sc_nitro_trd.remove_solution()
 Sc_nitro_trd.check_out()
 
@@ -75,16 +65,14 @@ for t in newtechnames_trd:
     df['commodity'] = comm_for_trd[newtechnames_trd.index(t)]
     df['value'] = 1
     df['unit'] = 'Tg N/yr'
-#    df['level'] = newlevelnames[0]
-    Sc_nitro_trd.add_par("output", df) 
+    Sc_nitro_trd.add_par("output", df.copy()) 
     
     df = Sc_nitro_trd.par("input", {"technology":["coal_trd"]}) 
     df['technology'] = t
     df['commodity'] = comm_for_trd[newtechnames_trd.index(t)]
     df['value'] = 1
     df['unit'] = 'Tg N/yr'
-#    df['level'] = newlevelnames[0]
-    Sc_nitro_trd.add_par("input", df) 
+    Sc_nitro_trd.add_par("input", df.copy()) 
     
 reg = REGIONS.copy()
 reg.remove('R11_GLB')
@@ -100,17 +88,17 @@ for t in newtechnames_imp:
     for r in reg:
         df['node_loc'] = r    
         df['node_dest'] = r     
-        Sc_nitro_trd.add_par("output", df) 
-    # output
+        Sc_nitro_trd.add_par("output", df.copy()) 
+        
+    # input
     df = Sc_nitro_trd.par("input", {"technology":["coal_imp"], "node_loc":['R11_CPA']}) 
     df['technology'] = t
     df['commodity'] = comm_for_trd[newtechnames_imp.index(t)]
     df['value'] = 1
     df['unit'] = 'Tg N/yr'
-#    df['level'] = newlevelnames[newtechnames.index(t)]
     for r in reg:
         df['node_loc'] = r 
-        Sc_nitro_trd.add_par("input", df)    
+        Sc_nitro_trd.add_par("input", df.copy())    
     
 for t in newtechnames_exp:
     # output
@@ -119,10 +107,10 @@ for t in newtechnames_exp:
     df['commodity'] = comm_for_trd[newtechnames_exp.index(t)]
     df['value'] = 1
     df['unit'] = 'Tg N/yr'
-#    df['level'] = newlevelnames[newtechnames_exp.index(t)]
     for r in reg:
         df['node_loc'] = r    
-        Sc_nitro_trd.add_par("output", df) 
+        Sc_nitro_trd.add_par("output", df.copy()) 
+        
     # input
     df = Sc_nitro_trd.par("input", {"technology":["coal_exp"], "node_loc":['R11_CPA']}) 
     df['technology'] = t
@@ -133,7 +121,7 @@ for t in newtechnames_exp:
     for r in reg:
         df['node_loc'] = r 
         df['node_origin'] = r    
-        Sc_nitro_trd.add_par("input", df)         
+        Sc_nitro_trd.add_par("input", df.copy())         
 
 # Need to incorporate the regional trade pattern
 
@@ -153,9 +141,10 @@ for t in newtechnames_exp:
     Sc_nitro_trd.add_par("fix_cost", df) 
       
 for t in newtechnames_imp:
-    df = Sc_nitro_trd.par("inv_cost", {"technology":["coal_imp"]}) 
-    df['technology'] = t
-    Sc_nitro_trd.add_par("inv_cost", df) 
+#   No inv_cost for importing tecs
+#    df = Sc_nitro_trd.par("inv_cost", {"technology":["coal_imp"]}) 
+#    df['technology'] = t
+#    Sc_nitro_trd.add_par("inv_cost", df) 
     
     df = Sc_nitro_trd.par("var_cost", {"technology":["coal_imp"]}) 
     df['technology'] = t
@@ -170,33 +159,30 @@ for t in newtechnames_trd:
     df['technology'] = t
     Sc_nitro_trd.add_par("var_cost", df) 
             
-#%% Modify global emissions bound 
-    
-if basescenarioName == "EmBound":
-    bound = 5000 #15000 #
-    bound_emissions_2C = {
-        'node': 'World',
-        'type_emission': 'TCE',
-        'type_tec': 'all',
-        'type_year' : 'cumulative', #'2050', #
-        'value': bound, #1076.0, # 1990 and on
-        'unit' : 'tC',
-    }
-         
-    df = pd.DataFrame(bound_emissions_2C, index=[0])
-            
-    Sc_nitro_trd.add_par("bound_emission", df) 
 
     
 #%% Other background variables
     
-  
-paramList_tec = [x for x in Sc_nitro.par_list() if 'technology' in Sc_nitro.idx_sets(x)]
+paramList_tec = [x for x in Sc_nitro_trd.par_list() if 'technology' in Sc_nitro_trd.idx_sets(x)]
 #paramList_comm = [x for x in Sc_nitro.par_list() if 'commodity' in Sc_nitro.idx_sets(x)]
-params_exp = [x for x in paramList_tec if 'coal_exp' in set(Sc_nitro.par(x)["technology"].tolist())]
-params_imp = [x for x in paramList_tec if 'coal_imp' in set(Sc_nitro.par(x)["technology"].tolist())]
-params_trd = [x for x in paramList_tec if 'coal_trd' in set(Sc_nitro.par(x)["technology"].tolist())]
-#params_trd = [x for x in paramList_comm if 'oil_extr1' in set(Sc_nitro.par(x)["technology"].tolist())]
+
+def get_params_with_tech(scen, name):
+    result = []
+    # Iterate over all parameters with a tech dimension
+    for par_name in paramList_tec:
+        if len(scen.par(par_name, filters={'technology': name})):
+            # Parameter has >= 1 data point with tech *name*
+            result.append(par_name)
+    return result
+
+params_exp = get_params_with_tech(Sc_nitro_trd, 'coal_exp')
+params_imp = get_params_with_tech(Sc_nitro_trd, 'coal_imp')
+params_trd = get_params_with_tech(Sc_nitro_trd, 'coal_trd')
+
+# Got too slow for some reason
+#params_exp = [x for x in paramList_tec if 'coal_exp' in set(Sc_nitro_trd.par(x)["technology"].tolist())]
+#params_imp = [x for x in paramList_tec if 'coal_imp' in set(Sc_nitro_trd.par(x)["technology"].tolist())]
+#params_trd = [x for x in paramList_tec if 'coal_trd' in set(Sc_nitro_trd.par(x)["technology"].tolist())]
 
 a = set(params_exp + params_imp + params_trd) 
 suffix = ('cost', 'put')
@@ -207,24 +193,27 @@ for p in list(a):
     for t in newtechnames_exp:
         df = Sc_nitro_trd.par(p, {"technology":["coal_exp"]}) 
         df['technology'] = t
-        Sc_nitro_trd.add_par(p, df)
+        if df.size:
+            Sc_nitro_trd.add_par(p, df.copy())
                       
     for t in newtechnames_imp:
         df = Sc_nitro_trd.par(p, {"technology":["coal_imp"]}) 
         df['technology'] = t
-        Sc_nitro_trd.add_par(p, df)
+        if df.size:
+            Sc_nitro_trd.add_par(p, df.copy())
         
     for t in newtechnames_trd:
         df = Sc_nitro_trd.par(p, {"technology":["coal_trd"]}) 
         df['technology'] = t
-        Sc_nitro_trd.add_par(p, df)
+        if df.size:
+            Sc_nitro_trd.add_par(p, df.copy())
         
 # Found coal_exp doesn't have full cells filled for technical_lifetime.
 for t in newtechnames_exp:
     df = Sc_nitro_trd.par('technical_lifetime', {"technology":t, "node_loc":['R11_CPA']}) 
     for r in reg:
         df['node_loc'] = r   
-        Sc_nitro_trd.add_par("technical_lifetime", df)       
+        Sc_nitro_trd.add_par("technical_lifetime", df.copy())       
 
 
 #%% Histrorical trade activity
@@ -244,8 +233,6 @@ df_histimp = df_histimp.assign(technology = newtechnames_imp[0]) #t
 df_histimp = df_histimp.drop(columns="Element")
 
 # GLB trd historical activities (Now equal to the sum of imports)
-#df_histimp.groupby(['year_act']).sum()
-#df_histexp.groupby(['year_act']).sum()
 dftrd = Sc_nitro_trd.par("historical_activity", {"technology":["coal_trd"]})
 dftrd = dftrd.loc[(dftrd.year_act<2015) & (dftrd.year_act>2000),]
 dftrd.value = df_histimp.groupby(['year_act']).sum().values
@@ -290,16 +277,9 @@ Sc_nitro_trd.add_par("demand", df)
 Sc_nitro_trd.commit('Nitrogen Fertilizer for global model with fertilizer trade via global pool')
 
 start_time = time.time()
-#Sc_nitro_trd.to_gdx(r'..\..\message_ix\message_ix\model\data', "MsgData_"+Sc_nitro_trd.model+"_"+
-#                Sc_nitro_trd.scenario+"_"+str(Sc_nitro_trd.version))
 
-if basescenarioName == "EmBound":
-    boundstr = str(bound)
-else:
-    boundstr = "NoBound"
-        
 Sc_nitro_trd.solve(model='MESSAGE', case=Sc_nitro_trd.model+"_"+
-                Sc_nitro_trd.scenario + "_" + boundstr)
+                Sc_nitro_trd.scenario + "_" + str(Sc_nitro_trd.version))
 
 print(".solve: %.6s seconds taken." % (time.time() - start_time))
 
@@ -308,132 +288,4 @@ print(".solve: %.6s seconds taken." % (time.time() - start_time))
 
 #Sc_nitro_trd = message_ix.Scenario(mp, modelName, newscenarioName)
 
-
-#%% Reporting for Andre@ESM
-rep = Reporter.from_scenario(Sc_nitro_trd)
-
-# Set up filters for N tecs
-#rep.set_filters(t= newtechnames_ccs + newtechnames + ['NFert_imp', 'NFert_exp', 'NFert_trd'])
-
-# NF demand summary
-NF = rep.add_product('useNF', 'land_input', 'LAND')
-
-print(rep.describe(rep.full_key('useNF')))
-rep.get('useNF:n-y')
-rep.write('useNF:n-y', 'nf_demand_'+boundstr+'.xlsx')
-rep.write('useNF:y', 'nf_demand_total_'+boundstr+'.xlsx')
-NF = rep.full_key('useNF')
-def collapse(df):
-    print(df)
-    df['variable'] = 'Nitrogen demand' #df.pop('c')
-#    df['scenario'] = df['scenario'] + '|' + df.pop('s')
-    print(df, df.columns, df.loc[0,:])
-    return df
-a = rep.as_pyam('useNF:n-y', 'y', collapse=collapse)
-rep.write(a[0], Path('nf_demand_'+boundstr+'_pyam.xlsx'))
-
-
-# Output in pyam
-rep.write('out:pyam', Path('activity_'+boundstr+'.xlsx'))
-
-out_pyam = rep.get('out:pyam')
-out_pyam.filter(variable='out|material_interim*').to_excel('NH3 production.xlsx')
-out_pyam.filter(variable='out|material_final*').to_excel('NFert production.xlsx')
-out_pyam.filter(variable='out|export*').to_excel('NFert export.xlsx')
-
-
-# Input for N production
-rep.set_filters()
-rep.set_filters(t= newtechnames_ccs + newtechnames)
-print(rep.describe(rep.full_key('in')))
-rep.get('in:nl-ya-no-c')
-def collapse_in(df):
-    print(df)
-    df['variable'] = 'input quantity' #df.pop('c')
-#    df['scenario'] = df['scenario'] + '|' + df.pop('s')
-    print(df, df.columns, df.loc[0,:])
-    return df
-a = rep.as_pyam('in:nl-ya-c', 'ya', collapse=collapse_in)
-in_pyam = rep.get('in:nl-ya-c:iamc')
-in_pyam.to_excel('NH3 production inputs.xlsx')
-
-
-# Emissions for N production
-print(rep.describe(rep.full_key('emi')))
-rep.get('emi:nl-t-ya')
-def collapse_emi(df):
-    print(df)
-    df['variable'] = 'input quantity' #df.pop('c')
-#    df['scenario'] = df['scenario'] + '|' + df.pop('s')
-    print(df, df.columns, df.loc[0,:])
-    return df
-a = rep.as_pyam('emi:nl-ya-c', 'ya', collapse=collapse_emi)
-emi_pyam = rep.get('emi:nl-ya-c:iamc')
-emi_pyam.to_excel('NH3 production emissions.xlsx')
-
-
-
-
-# Price
-rep.set_filters()
-rep.set_filters(l= ['material_final', 'material_interim'])
-
-print(rep.describe(rep.full_key('PRICE_COMMODITY')))
-pc = rep.get(rep.full_key('PRICE_COMMODITY'))
-def collapse_N(df):
-    print(df, df.columns, df.loc[0,:], df.c)
-    df['variable'] = 'Price|' + df.pop('c')
-    print(df.loc[0,:])
-    df.loc[df['l'] == "material_interim", 'unit'] = '$/tNH3'
-    df.loc[df['l'] == "material_final", 'unit'] = '$/tN'
-#    df['scenario'] = df['scenario'] + '|' + df.pop('s')
-    print(df.loc[0,:])
-    return df
-a = rep.as_pyam('PRICE_COMMODITY:n-c-l-y', 'y', collapse=collapse_N)
-rep.write(a[0], Path('price_commodity_'+boundstr+'.xlsx'))
-
-
-
-
-#%%
-# Reporting Test
-
-LE = rep.add_product('emiss_land', 'land_emission', 'LAND')
-print(rep.describe(rep.full_key('emiss_land')))
-rep.set_filters(t=None, n=None, s=None)
-rep.set_filters()
-rep.set_filters(n=['R11_LAM'], e=['TCE'])
-rep.write('emiss_land:n-s-y-e', Path('land_emission_LAM.xlsx'))
-
-
-rep.set_filters(t=None, n=None, e=None)
-rep.set_filters(nl=['R11_LAM'], e=['TCE'])
-print(rep.describe(rep.full_key('emi')))
-rep.get(rep.full_key('emi'))
-rep.write('emi:nl-t-yv-ya-m-e-h', 'oth_emission_LAM.xlsx')
-
-
-print(rep.describe('inv:t'))
-rep.get(rep.full_key('out'))
-rep.full_key('out')
-rep.get('out:nl-t-ya')
-b = rep.get('out:pyam')
-rep.get('inv:nl-yv')
-a = rep.get('inv:t-yv')
-out = rep.describe('out')
-rep.write('out:nl-t-ya', 'debug.xlsx')
-rep.write('inv:pyam', Path('debug2.xlsx'))
-
-out_pyam.scenarios()
-out_pyam.regions()
-out_pyam.variables(include_units=True)
-out_pyam.filter(variable='out|material_interim|*', region='R11_CPA|R11_CPA').variables()
-out_pyam.filter(level='1-').variables()
-out_pyam.filter(variable='out|*', level=0,  region='R11_CPA|R11_CPA').variables()
-
-out_pyam.filter(variable='out|material_interim*', region='R11_CPA|R11_CPA').line_plot(legend=False)
-out_pyam.filter(variable='out|material_interim*', level=1,  region='R11_CPA|R11_CPA').line_plot(legend=True)
-out_pyam.filter(variable='out|material_interim*', region='R11_CPA|R11_CPA').stack_plot()
-
-out_pyam.filter(variable='out|material_interim*', region='R11_CPA|R11_CPA').to_excel('CPA.xlsx')
 
