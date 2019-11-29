@@ -51,20 +51,18 @@ def GenerateOutput(model, scen, rep):
     rep.write(a[0], Path('nf_demand_'+model+'_'+scen+'.xlsx'))
 
     """
-    'emi' not working with filters on NH3 technologies for now.
+    'emi' not working with filters on NH3 technologies for now. (This was because of units '???' and '-'.)
     """
     # 2. Total emissions
     rep.set_filters()
-    rep.set_filters(t= (newtechnames_ccs + newtechnames)[:-1]) # and NH3_to_N_fertil does not have emission factor
+    rep.set_filters(t= (newtechnames_ccs + newtechnames)[:-1], e=['CO2_transformation']) # and NH3_to_N_fertil does not have emission factor
 
     def collapse_emi(df):
-#        print(df)
         df['variable'] = 'Emissions|CO2|' +df.pop('t')
         df['unit'] = 'Mt CO2'
-#        print(df, df.columns, df.loc[0,:])
         return df
     a = rep.convert_pyam('emi:nl-t-ya', 'ya', collapse=collapse_emi)
-    rep.write(a[0], Path('nf_emissions_'+model+'_'+scen+'.xlsx'))
+    rep.write(a[0], Path('nf_emissions_CO2_'+model+'_'+scen+'.xlsx'))
 
 
     # 3. Total inputs (incl. final energy) to fertilizer processes
@@ -91,6 +89,14 @@ def GenerateOutput(model, scen, rep):
     a = rep.convert_pyam('PRICE_COMMODITY:n-c-y', 'y', collapse=collapse_N)
     rep.write(a[0], Path('price_commodity_'+model+'_'+scen+'.xlsx'))
 
+    # 5. Carbon price
+    if scen!="baseline":
+        rep.set_filters()
+        
+        a = rep.convert_pyam('PRICE_EMISSION', 'y')
+        rep.write(a[0], Path('price_emission_'+model+'_'+scen+'.xlsx'))
+
+
 # Generate individual xlsx
 for sc in scen_names:
     Sc_ref = message_ix.Scenario(mp, model_name, sc)
@@ -98,9 +104,11 @@ for sc in scen_names:
     GenerateOutput(model_name, sc, repo)
     
 # Combine xlsx per each output variable    
-for cases in ['nf_demand', 'nf_emissions', 'nf_input', 'price_commodity']:
+for cases in ['nf_demand', 'nf_emissions_CO2', 'nf_input', 'price_commodity', 'price_emission']:
     infiles = []
     for sc in scen_names:
+        if sc=="baseline" and cases=='price_emission':
+            continue
         infiles.append(pd.read_excel(cases + "_"+ model_name +'_' + sc + ".xlsx"))        
     appended_df = pd.concat(infiles, join='outer', sort=False)
     appended_df.to_excel(cases+"-"+model_name+".xlsx", index=False)
@@ -112,7 +120,7 @@ from pyam.plotting import OUTSIDE_LEGEND
 
 def plot_NF_result(case='nf_demand', model=model_name, scen='baseline'):
     """
-        - Generate PNG plots for each case of ['nf_demand', 'nf_emissions', 'nf_input', 'price_commodity']
+        - Generate PNG plots for each case of ['nf_demand', 'nf_emissions_CO2', 'nf_input', 'price_commodity']
         - Data read from the xlsx files created above    
     """        
     if case in ['nf_demand', 'all']:
@@ -130,17 +138,18 @@ def plot_NF_result(case='nf_demand', model=model_name, scen='baseline'):
             data.aggregate_region(v, append=True)
         
         fig, ax = plt.subplots(figsize=(12, 12))    
+#        data.filter(region="World").stack_plot(ax=ax, legend=OUTSIDE_LEGEND['right'])
         data.filter(region="World").line_plot(ax=ax, legend=OUTSIDE_LEGEND['right'])
         plt.savefig('./plots/nf_input'+'_'+model+'_'+scen+'.png')
 
-    if case in ['nf_emissions', 'all']:    
-        data = pyam.IamDataFrame(data='nf_emissions'+'_'+model+'_'+scen+'.xlsx', encoding='utf-8')
+    if case in ['nf_emissions_CO2', 'all']:    
+        data = pyam.IamDataFrame(data='nf_emissions_CO2'+'_'+model+'_'+scen+'.xlsx', encoding='utf-8')
         for v in list(data.variables()):
             data.aggregate_region(v, append=True)
         
         fig, ax = plt.subplots(figsize=(12, 12))    
         data.filter(region="World").line_plot(ax=ax, legend=OUTSIDE_LEGEND['right'])
-        plt.savefig('./plots/nf_emissions'+'_'+model+'_'+scen+'.png')
+        plt.savefig('./plots/nf_emissions_CO2'+'_'+model+'_'+scen+'.png')
         
     if case in ['price_commodity', 'all']:
         # N fertilizer
@@ -161,13 +170,13 @@ scen_names = ["baseline",
               "NPi2020_400-con-prim-dir-ncr"]
 """
 
-cases = ['nf_demand', 'nf_emissions', 'nf_input', 'price_commodity']
+cases = ['nf_demand', 'nf_emissions_CO2', 'nf_input', 'price_commodity']
 
 # Individual calls
 #plot_NF_result(case='nf_demand', scen='NPi2020_1600-con-prim-dir-ncr')  
 #plot_NF_result(case='price_commodity', scen='NPi2020_1600-con-prim-dir-ncr')   
 #plot_NF_result(case='nf_input',scen='NPi2020_400-con-prim-dir-ncr')   
-#plot_NF_result(case='nf_emissions',scen='NPi2020_400-con-prim-dir-ncr')   
+#plot_NF_result(case='nf_emissions_CO2',scen='NPi2020_400-con-prim-dir-ncr')   
 
 # call for all plots
 for sc in scen_names:
