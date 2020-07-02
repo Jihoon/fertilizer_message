@@ -1,0 +1,10 @@
+mix-data fertilizer run --scenarios baseline --base-model JM_GLB_NITRO --base-scen NoPolicy main SSP2
+
+mix-data fertilizer run --scenarios copy_cdlinks --base-model JM_GLB_NITRO --base-scen NoPolicy main SSP2
+
+mix-data fertilizer run main SSP2 --scenarios copy_cdlinks --output-model JM_GLB_NITRO_MACRO
+
+
+b h:\mydocuments\message\message_data\message_data\scenario_generation\reserve_margin\res_marg.py:22
+
+demands.loc[reg, 'rc_spec', year, 'useful', 'year', 'GWa']
